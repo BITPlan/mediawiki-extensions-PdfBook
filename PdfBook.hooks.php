@@ -27,6 +27,8 @@ class PdfBookHooks {
 			// Initialise PDF variables
 			$format  = $wgRequest->getText( 'format' );
 			$notitle = $wgRequest->getText( 'notitle' );
+			$titlepage=$wgRequest->getText( 'titlepage' );
+			
 			$layout  = $format == 'single' ? '--webpage' : '--firstpage toc';
 			$charset = self::setProperty( 'Charset',     'iso-8859-1' );
 			$left    = self::setProperty( 'LeftMargin',  '1cm' );
@@ -44,6 +46,7 @@ class PdfBookHooks {
 			// new features 2016-01
 			$header  = self::setProperty( 'Header',       '...' );
 			$footer  = self::setProperty( 'Footer',       '.1.' );
+			
 			$logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 
 			if( !is_array( $exclude ) ) $exclude = split( '\\s*,\\s*', $exclude );
@@ -95,6 +98,9 @@ class PdfBookHooks {
 			$wgScriptPath  = $wgServer.$wgScriptPath;
 			$wgUploadPath  = $wgServer.$wgUploadPath;
 			$wgScript      = $wgServer.$wgScript;
+			if ($titlepage!="") {
+				$html.=$titlepage;
+			}
 			foreach( $articles as $title ) {
 				$ttext = $title->getPrefixedText();
 				if( !in_array( $ttext, $exclude ) ) {
