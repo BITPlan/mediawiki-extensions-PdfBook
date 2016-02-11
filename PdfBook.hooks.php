@@ -43,12 +43,15 @@ class PdfBookHooks {
 			$width   = $width ? "--browserwidth $width" : '';
                         $header  = self::setProperty( 'Header',       '...' );
 			$footer  = self::setProperty( 'Footer',       '.1.' );
+                        $logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 
 			if( !is_array( $exclude ) ) $exclude = split( '\\s*,\\s*', $exclude );
  
 			// Select articles from members if a category or links in content if not
-			if( $format == 'single' ) $articles = array( $title );
-			else {
+			if( $format == 'single' ) {
+				$articles = array( $title );
+			} else {
+				// get articles from a given category
 				$articles = array();
 				if( $title->getNamespace() == NS_CATEGORY ) {
 					$db     = wfGetDB( DB_SLAVE );
@@ -60,8 +63,12 @@ class PdfBookHooks {
 						'PdfBook',
 						array( 'ORDER BY' => 'cl_sortkey' )
 					);
-					if( $result instanceof ResultWrapper ) $result = $result->result;
-					while ( $row = $db->fetchRow( $result ) ) $articles[] = Title::newFromID( $row[0] );
+					if( $result instanceof ResultWrapper ) {
+						$result = $result->result;
+					}
+					while ( $row = $db->fetchRow( $result ) ) {
+						$articles[] = Title::newFromID( $row[0] );
+					}
 				}
 				else {
 					$text = $article->fetchContent();
@@ -111,7 +118,6 @@ class PdfBookHooks {
 				$file = "$wgUploadDirectory/" . uniqid( 'pdf-book' );
 				file_put_contents( $file, $html );
 
-				$footer = $format == 'single' ? "..." : $footer;
 				$toc    = $format == 'single' ? "" : " --toclevels $levels";
 
 				// Send the file to the client via htmldoc converter
@@ -122,7 +128,7 @@ class PdfBookHooks {
                                 $cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
 				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
 				$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
-                                $logopath=$_SERVER['DOCUMENT_ROOT'].$wgLogo;
+                                
 			        $cmd .= " --logoimage $logopath";
 				$cmd  = "htmldoc -t pdf --charset $charset $cmd $file";
 				putenv( "HTMLDOC_NOCGI=1" );
