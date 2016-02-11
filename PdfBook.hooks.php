@@ -49,7 +49,9 @@ class PdfBookHooks {
 			
 			$logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 
-			if( !is_array( $exclude ) ) $exclude = split( '\\s*,\\s*', $exclude );
+			if( !is_array( $exclude ) ) {
+				$exclude = split( '\\s*,\\s*', $exclude );
+			}
  
 			// Select articles from members if a category or links in content if not
 			if( $format == 'single' ) {
@@ -98,9 +100,6 @@ class PdfBookHooks {
 			$wgScriptPath  = $wgServer.$wgScriptPath;
 			$wgUploadPath  = $wgServer.$wgUploadPath;
 			$wgScript      = $wgServer.$wgScript;
-			if ($titlepage!="") {
-				$html.=$titlepage;
-			}
 			foreach( $articles as $title ) {
 				$ttext = $title->getPrefixedText();
 				if( !in_array( $ttext, $exclude ) ) {
@@ -114,14 +113,22 @@ class PdfBookHooks {
 				header( "Content-Type: text/html" );
 				header( "Content-Disposition: attachment; filename=\"$book.html\"" );
 				print $html;
-			}
-			else {
+			} else {
 				// Write the HTML to a tmp file
 				if( !is_dir( $wgUploadDirectory ) ) {
 					mkdir( $wgUploadDirectory );
 				}
-				$file = "$wgUploadDirectory/" . uniqid( 'pdf-book' );
+				$file      = "$wgUploadDirectory/" . uniqid( 'pdf-book' );
+				$titlefile = "$wgUploadDirectory/" . uniqid( 'pdf-book-title' );
 				file_put_contents( $file, $html );
+				// check if a titlepage was specified
+ 			  if ($titlepage != "") {
+				  $l_ttext="";
+				  $l_notitle=true;
+				  $l_title=Title::newFromText( $titlepage );
+				  $titlehtml.=self::getHtml($l_title,$l_ttext,$format,$opt,$l_notitle);
+					file_put_contents( $titlefile, $titlehtml );
+				}
 
 				$toc    = $format == 'single' ? "" : " --toclevels $levels";
 
@@ -130,19 +137,27 @@ class PdfBookHooks {
 				header( "Content-Type: application/pdf" );
 				header( "Content-Disposition: attachment; filename=\"$book.pdf\"" );
 				$cmd  = "--left $left --right $right --top $top --bottom $bottom";
-                                $cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
+				$cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
 				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
 				$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
                                 
 			  $cmd .= " --logoimage $logopath";
+			  if ($titlepage != "") {
+			  	$cmd.= " --titlefile $titlefile";
+			  }
 				$cmd  = "htmldoc -t pdf --charset $charset $cmd $file";
 				putenv( "HTMLDOC_NOCGI=1" );
 				# debug the command
 				file_put_contents("/tmp/hd","$cmd");
 				# pipe the result of the command
-				passthru( $cmd );
+				passthru( $cmd,$error_code );
+				// file_put_contents("/tmp/errorcode",$error_code);
+				if ($error_code!=0) {
+					// we should handle an error here
+				}
 				// comment out unlink if you'd like to debug the intermediate result 
-				@unlink( $file );
+				// @unlink( $file );
+				// @unlink( $titlefile );		
 			}
 			return false;
 		}
@@ -155,7 +170,7 @@ class PdfBookHooks {
 	 * title
 	 */
 	private static function getHtml($title,$ttext,$format,$opt,$notitle) {
-		global $wgParser;
+		global $wgParser,$wgServer;
 		$article = new Article( $title );
 		$text    = $article->fetchContent();
 		$text    = preg_replace( "/<!--([^@]+?)-->/s", "@@" . "@@$1@@" . "@@", $text ); # preserve HTML comments
