@@ -1,12 +1,17 @@
 <?php
 
+
+/**
+ * hooks for Extension PdfBook
+ * see https://www.mediawiki.org/wiki/Extension:PdfBook
+ */
 class PdfBookHooks {
 
 	/**
 	 * Perform the export operation
 	 */
 	public static function onUnknownAction( $action, $article ) {
-		global $wgOut, $wgUser, $wgParser, $wgRequest;
+		global $wgOut, $wgUser, $wgParser, $wgRequest, ,$wgLogo;
 		global $wgServer, $wgArticlePath, $wgScriptPath, $wgUploadPath, $wgUploadDirectory, $wgScript;
 
 		if( $action == 'pdfbook' ) {
@@ -36,6 +41,9 @@ class PdfBookHooks {
 			$exclude = self::setProperty( 'Exclude',     array() );
 			$width   = self::setProperty( 'Width',       '' );
 			$width   = $width ? "--browserwidth $width" : '';
+                        $header  = self::setProperty( 'Header',       '...' );
+			$footer  = self::setProperty( 'Footer',       '...' );
+
 			if( !is_array( $exclude ) ) $exclude = split( '\\s*,\\s*', $exclude );
  
 			// Select articles from members if a category or links in content if not
@@ -111,12 +119,17 @@ class PdfBookHooks {
 				header( "Content-Type: application/pdf" );
 				header( "Content-Disposition: attachment; filename=\"$book.pdf\"" );
 				$cmd  = "--left $left --right $right --top $top --bottom $bottom";
-				$cmd .= " --header ... --footer $footer --headfootsize 8 --quiet --jpeg --color";
+                                $cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
 				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
 				$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
+                                $logopath=$_SERVER['DOCUMENT_ROOT'].$wgLogo;
+			        $cmd .= " --logoimage $logopath";
 				$cmd  = "htmldoc -t pdf --charset $charset $cmd $file";
 				putenv( "HTMLDOC_NOCGI=1" );
+				# debug the command
+      				file_put_contents("/tmp/hd","$cmd");
 				passthru( $cmd );
+				// comment out unlink if you'd like to debug the intermediate result 
 				@unlink( $file );
 			}
 			return false;
