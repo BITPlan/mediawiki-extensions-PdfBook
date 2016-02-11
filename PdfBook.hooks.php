@@ -41,9 +41,10 @@ class PdfBookHooks {
 			$exclude = self::setProperty( 'Exclude',     array() );
 			$width   = self::setProperty( 'Width',       '' );
 			$width   = $width ? "--browserwidth $width" : '';
-                        $header  = self::setProperty( 'Header',       '...' );
+			// new features 2016-01
+			$header  = self::setProperty( 'Header',       '...' );
 			$footer  = self::setProperty( 'Footer',       '.1.' );
-                        $logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
+			$logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 
 			if( !is_array( $exclude ) ) $exclude = split( '\\s*,\\s*', $exclude );
  
@@ -53,7 +54,9 @@ class PdfBookHooks {
 			} else {
 				// get articles from a given category
 				$articles = array();
-				if( $title->getNamespace() == NS_CATEGORY ) {
+				$pageIsCategory=$title->getNamespace() == NS_CATEGORY ;
+				$linkList=$format == 'linklist';
+				if( $pageIsCategory && ! $linkList) {
 					$db     = wfGetDB( DB_SLAVE );
 					$cat    = $db->addQuotes( $title->getDBkey() );
 					$result = $db->select(
@@ -69,12 +72,18 @@ class PdfBookHooks {
 					while ( $row = $db->fetchRow( $result ) ) {
 						$articles[] = Title::newFromID( $row[0] );
 					}
-				}
-				else {
+				} else {
+					// get the current page
 					$text = $article->fetchContent();
 					$text = $wgParser->preprocess( $text, $title, $opt );
-					if ( preg_match_all( "/^\\*\\s*\\[{2}\\s*([^\\|\\]]+)\\s*.*?\\]{2}/m", $text, $links ) )
-						foreach ( $links[1] as $link ) $articles[] = Title::newFromText( $link );
+					// regulare expression to look for links in page
+					$linkRegexp="/^\\*\\s*\\[{2}\\s*([^\\|\\]]+)\\s*.*?\\]{2}/m";
+					// for each linkg found get the page title it points to
+					if ( preg_match_all( $linkRegexp, $text, $links ) ) {
+						foreach ( $links[1] as $link ) {
+							$articles[] = Title::newFromText( $link );
+						}
+					}
 				}
 			}
 
@@ -89,19 +98,7 @@ class PdfBookHooks {
 			foreach( $articles as $title ) {
 				$ttext = $title->getPrefixedText();
 				if( !in_array( $ttext, $exclude ) ) {
-					$article = new Article( $title );
-					$text    = $article->fetchContent();
-					$text    = preg_replace( "/<!--([^@]+?)-->/s", "@@" . "@@$1@@" . "@@", $text ); # preserve HTML comments
-					if( $format != 'single' ) $text .= "__NOTOC__";
-					$opt->setEditSection( false );    # remove section-edit links
-					$out     = $wgParser->parse( $text, $title, $opt, true, true );
-					$text    = $out->getText();
-					$text    = preg_replace( "|(<img[^>]+?src=\")(/.+?>)|", "$1$wgServer$2", $text );      # make image urls absolute
-					$text    = preg_replace( "|<div\s*class=['\"]?noprint[\"']?>.+?</div>|s", "", $text ); # non-printable areas
-					$text    = preg_replace( "|@{4}([^@]+?)@{4}|s", "<!--$1-->", $text );                  # HTML comments hack
-					$ttext   = basename( $ttext );
-					$h1      = $notitle ? "" : "<center><h1>$ttext</h1></center>";
-					$html   .= utf8_decode( "$h1$text\n" );
+					$html.=self::getHtml($title,$ttext,$format,$opt,$notitle);
 				}
 			}
 
@@ -114,7 +111,9 @@ class PdfBookHooks {
 			}
 			else {
 				// Write the HTML to a tmp file
-				if( !is_dir( $wgUploadDirectory ) ) mkdir( $wgUploadDirectory );
+				if( !is_dir( $wgUploadDirectory ) ) {
+					mkdir( $wgUploadDirectory );
+				}
 				$file = "$wgUploadDirectory/" . uniqid( 'pdf-book' );
 				file_put_contents( $file, $html );
 
@@ -129,11 +128,12 @@ class PdfBookHooks {
 				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
 				$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
                                 
-			        $cmd .= " --logoimage $logopath";
+			  $cmd .= " --logoimage $logopath";
 				$cmd  = "htmldoc -t pdf --charset $charset $cmd $file";
 				putenv( "HTMLDOC_NOCGI=1" );
 				# debug the command
-      				file_put_contents("/tmp/hd","$cmd");
+				file_put_contents("/tmp/hd","$cmd");
+				# pipe the result of the command
 				passthru( $cmd );
 				// comment out unlink if you'd like to debug the intermediate result 
 				@unlink( $file );
@@ -142,6 +142,30 @@ class PdfBookHooks {
 		}
 
 		return true;
+	}
+	
+	/**
+	 * get the html code representation of the page with the given
+	 * title
+	 */
+	private static function getHtml($title,$ttext,$format,$opt,$notitle) {
+		global $wgParser;
+		$article = new Article( $title );
+		$text    = $article->fetchContent();
+		$text    = preg_replace( "/<!--([^@]+?)-->/s", "@@" . "@@$1@@" . "@@", $text ); # preserve HTML comments
+		if( $format != 'single' ) {
+			$text .= "__NOTOC__";
+		}
+		$opt->setEditSection( false );    # remove section-edit links
+		$out     = $wgParser->parse( $text, $title, $opt, true, true );
+		$text    = $out->getText();
+		$text    = preg_replace( "|(<img[^>]+?src=\")(/.+?>)|", "$1$wgServer$2", $text );      # make image urls absolute
+		$text    = preg_replace( "|<div\s*class=['\"]?noprint[\"']?>.+?</div>|s", "", $text ); # non-printable areas
+		$text    = preg_replace( "|@{4}([^@]+?)@{4}|s", "<!--$1-->", $text );                  # HTML comments hack
+		$ttext   = basename( $ttext );
+		$h1      = $notitle ? "" : "<center><h1>$ttext</h1></center>";
+		$html    = utf8_decode( "$h1$text\n" );
+		return $html;	
 	}
 
 
