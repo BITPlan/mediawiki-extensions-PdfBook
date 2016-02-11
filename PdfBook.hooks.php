@@ -11,7 +11,7 @@ class PdfBookHooks {
 	 * Perform the export operation
 	 */
 	public static function onUnknownAction( $action, $article ) {
-		global $wgOut, $wgUser, $wgParser, $wgRequest, ,$wgLogo;
+		global $wgOut, $wgUser, $wgParser, $wgRequest, $wgLogo;
 		global $wgServer, $wgArticlePath, $wgScriptPath, $wgUploadPath, $wgUploadDirectory, $wgScript;
 
 		if( $action == 'pdfbook' ) {
@@ -42,7 +42,7 @@ class PdfBookHooks {
 			$width   = self::setProperty( 'Width',       '' );
 			$width   = $width ? "--browserwidth $width" : '';
                         $header  = self::setProperty( 'Header',       '...' );
-			$footer  = self::setProperty( 'Footer',       '...' );
+			$footer  = self::setProperty( 'Footer',       '.1.' );
 
 			if( !is_array( $exclude ) ) $exclude = split( '\\s*,\\s*', $exclude );
  
@@ -111,7 +111,7 @@ class PdfBookHooks {
 				$file = "$wgUploadDirectory/" . uniqid( 'pdf-book' );
 				file_put_contents( $file, $html );
 
-				$footer = $format == 'single' ? "..." : ".1.";
+				$footer = $format == 'single' ? "..." : $footer;
 				$toc    = $format == 'single' ? "" : " --toclevels $levels";
 
 				// Send the file to the client via htmldoc converter
