@@ -127,12 +127,12 @@ class PdfBookHooks {
 				$pdffile   = "$wgUploadDirectory/" .$pdfid .".pdf";
 				file_put_contents( $file, $html );
 				// check if a titlepage was specified
- 			  if ($titlepage != "") {
+ 			  	if ($titlepage != "") {
 				  $l_ttext="";
 				  $l_notitle=true;
 				  $l_title=Title::newFromText( $titlepage );
-				  $titlehtml.=self::getHtml($l_title,$l_ttext,$format,$opt,$l_notitle);
-					file_put_contents( $titlefile, $titlehtml );
+				  $titlehtml=self::getHtml($l_title,$l_ttext,$format,$opt,$l_notitle);
+				  file_put_contents( $titlefile, $titlehtml );
 				}
 
 				$toc    = $format == 'single' ? "" : " --toclevels $levels";
@@ -142,20 +142,21 @@ class PdfBookHooks {
 				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
 				$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
                                 
-			  $cmd .= " --logoimage $logopath";
-			  if ($titlepage != "") {
-			  	$cmd.= " --titlefile $titlefile";
-			  }
-			  // check some default locations for htmldoc
-			  // add yours if this doesn't work
-			  $htmldoc="/usr/bin/htmldoc";
-			  if (!file_exists($htmldoc)) {
-			  	$htmldoc="/opt/local/bin/htmldoc";
-			  } else {
-			  	die("PdfBook MediaWiki extension: htmldoc application path not configured. You might want to modify PdfBook.hooks.php.");
-			  }
+				$cmd .= " --logoimage $logopath";
+				if ($titlepage != "") {
+					$cmd.= " --titlefile $titlefile";
+				}
+				// check some default locations for htmldoc
+				// add yours if this doesn't work
+				$htmldoc="/usr/bin/htmldoc";
+				if (!file_exists($htmldoc)) {
+					$htmldoc="/opt/local/bin/htmldoc";
+				}
+				if (!file_exists($htmldoc))  {
+					die("PdfBook MediaWiki extension: htmldoc application path not configured. You might want to modify PdfBook.hooks.php.");
+				}
 				// $cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file";
-				$cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file > $pdffile";
+				$cmd  = "$htmldoc -t pdf --charset $charset $cmd $file > $pdffile";
 				putenv( "HTMLDOC_NOCGI=1" );
 				// uncomment if you'd like to force debugging
 				$debug=true;
