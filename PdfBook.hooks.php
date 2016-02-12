@@ -98,7 +98,7 @@ class PdfBookHooks {
 			// start a proper HTML document
 			$html = self::getHTMLHeader($title);
 			$wgArticlePath = $wgServer.$wgArticlePath;
-			$wgPdfBookTab  = false;
+			$wgPdfBookTab  = true;
 			$wgScriptPath  = $wgServer.$wgScriptPath;
 			$wgUploadPath  = $wgServer.$wgUploadPath;
 			$wgScript      = $wgServer.$wgScript;
