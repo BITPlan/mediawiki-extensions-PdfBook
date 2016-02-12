@@ -15,7 +15,7 @@ class PdfBookHooks {
 		global $wgServer, $wgArticlePath, $wgScriptPath, $wgUploadPath, $wgUploadDirectory, $wgScript;
 
 		if( $action == 'pdfbook' ) {
-
+	   
 			$title = $article->getTitle();
 			$opt = ParserOptions::newFromUser( $wgUser );
 
@@ -46,6 +46,7 @@ class PdfBookHooks {
 			// new features 2016-01
 			$header  = self::setProperty( 'Header',       '...' );
 			$footer  = self::setProperty( 'Footer',       '.1.' );
+			$debug   = self::setProperty( 'Debug',       false );
 			
 			$logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 
@@ -94,7 +95,8 @@ class PdfBookHooks {
 
 			// Format the article(s) as a single HTML document with absolute URL's
 			$book = $title->getText();
-			$html = '';
+			// start a proper HTML document
+			$html = self::getHTMLHeader($title);
 			$wgArticlePath = $wgServer.$wgArticlePath;
 			$wgPdfBookTab  = false;
 			$wgScriptPath  = $wgServer.$wgScriptPath;
@@ -106,7 +108,8 @@ class PdfBookHooks {
 					$html.=self::getHtml($title,$ttext,$format,$opt,$notitle);
 				}
 			}
-
+			// end the HTML document
+      $html .= self::getHTMLFooter();
 			// $wgPdfBookTab = false; If format=html in query-string, return html content directly
 			if( $format == 'html' ) {
 				$wgOut->disable();
@@ -118,8 +121,10 @@ class PdfBookHooks {
 				if( !is_dir( $wgUploadDirectory ) ) {
 					mkdir( $wgUploadDirectory );
 				}
-				$file      = "$wgUploadDirectory/" . uniqid( 'pdf-book' );
-				$titlefile = "$wgUploadDirectory/" . uniqid( 'pdf-book-title' );
+				$pdfid=uniqid( 'pdf-book' );
+				$file      = "$wgUploadDirectory/" .$pdfid .".html";
+				$titlefile = "$wgUploadDirectory/" .$pdfid ."-title.html";
+				$pdffile   = "$wgUploadDirectory/" .$pdfid .".pdf";
 				file_put_contents( $file, $html );
 				// check if a titlepage was specified
  			  if ($titlepage != "") {
@@ -132,10 +137,6 @@ class PdfBookHooks {
 
 				$toc    = $format == 'single' ? "" : " --toclevels $levels";
 
-				// Send the file to the client via htmldoc converter
-				$wgOut->disable();
-				header( "Content-Type: application/pdf" );
-				header( "Content-Disposition: attachment; filename=\"$book.pdf\"" );
 				$cmd  = "--left $left --right $right --top $top --bottom $bottom";
 				$cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
 				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
@@ -145,24 +146,81 @@ class PdfBookHooks {
 			  if ($titlepage != "") {
 			  	$cmd.= " --titlefile $titlefile";
 			  }
-				$cmd  = "htmldoc -t pdf --charset $charset $cmd $file";
+				// $cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file";
+				$cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file > $pdffile";
 				putenv( "HTMLDOC_NOCGI=1" );
-				# debug the command
-				file_put_contents("/tmp/hd","$cmd");
-				# pipe the result of the command
-				passthru( $cmd,$error_code );
-				// file_put_contents("/tmp/errorcode",$error_code);
-				if ($error_code!=0) {
-					// we should handle an error here
+				// uncomment if you'd like to force debugging
+				$debug=true;
+				$removeFiles=true;
+				# optionally debug the command
+				if ($debug) {
+					file_put_contents("/tmp/hd","$cmd");
+					$removeFiles=false;
 				}
-				// comment out unlink if you'd like to debug the intermediate result 
-				// @unlink( $file );
-				// @unlink( $titlefile );		
+				# get the result of the command
+				$error_code=0;
+				$htmldocoutput=array();
+				// this is a debugging way to do things
+				//exec($cmd,$htmldocoutput,$error_code );
+				//file_put_contents($pdffile,implode($htmldocoutput));
+				$error_code=shell_exec($cmd);
+				// display the result
+				// in any case we do not show a wiki page but our own result
+				$wgOut->disable();
+				// check the success
+				if ($error_code!=0) {
+					// uncomment the following line if you'd like to keep the temporary files for debug inspection even if debug is off
+					$removeFiles=false;
+					// we should handle an error here
+					echo self::getHTMLHeader("Error");
+					echo "<div style='color:red'>PDF Creation Error</div>\n";
+					echo "$cmd failed with error code $error_code\n";
+					echo implode("<br>\n",$htmldocoutput);
+					echo "<h3>htmldoc result</h3>\n";
+					readfile($pdffile);
+					echo self::getHTMLFooter();			
+				} else {
+					// Send the resulting pdf file to the client
+					header( "Content-Type: application/pdf" );
+					header( "Content-Disposition: attachment; filename=\"$book.pdf\"" );
+					readfile($pdffile);
+				}
+				if ($removeFiles) {
+				  @unlink( $file );
+		      @unlink( $titlefile );	
+		      @unlink( $pdffile);
+		    }	
+
 			}
 			return false;
 		}
 
 		return true;
+	}
+	
+	/**
+	 * return a proper html header with Style sheet information
+	 */
+	private static function getHtmlHeader($title) {
+		$html="<!DOCTYPE html>\n".
+          "<html lang='en' dir='ltr' class='client-nojs'>\n".
+					"<head>\n".
+					"<meta charset='UTF-8' />\n".
+					"<title>'.$title.'</title>\n".
+					"<meta name='generator' content='PdfBook MediaWiki Extension' />\n".
+					"<head>\n".
+					"<body>\n";
+    return $html;
+	}
+	
+	/**
+	 * return a proper html footer with Style sheet information
+	 */
+	private static function getHtmlFooter() {
+		$html="<!DOCTYPE html>\n".
+          "</body>\n".
+					"</html>\n";
+    return $html;
 	}
 	
 	/**
