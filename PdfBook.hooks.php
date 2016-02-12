@@ -169,8 +169,8 @@ class PdfBookHooks {
 				$error_code=0;
 				$htmldocoutput=array();
 				// this is a debugging way to do things
-				//exec($cmd,$htmldocoutput,$error_code );
-				//file_put_contents($pdffile,implode($htmldocoutput));
+				// exec($cmd,$htmldocoutput,$error_code );
+				// file_put_contents($pdffile,implode($htmldocoutput));
 				$error_code=shell_exec($cmd);
 				// display the result
 				// in any case we do not show a wiki page but our own result
