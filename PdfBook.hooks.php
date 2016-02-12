@@ -146,6 +146,14 @@ class PdfBookHooks {
 			  if ($titlepage != "") {
 			  	$cmd.= " --titlefile $titlefile";
 			  }
+			  // check some default locations for htmldoc
+			  // add yours if this doesn't work
+			  $htmldoc="/usr/bin/htmldoc";
+			  if (!file_exists($htmldoc)) {
+			  	$htmldoc="/opt/local/bin/htmldoc";
+			  } else {
+			  	die("PdfBook MediaWiki extension: htmldoc application path not configured. You might want to modify PdfBook.hooks.php.");
+			  }
 				// $cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file";
 				$cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file > $pdffile";
 				putenv( "HTMLDOC_NOCGI=1" );
