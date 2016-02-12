@@ -96,7 +96,7 @@ class PdfBookHooks {
 			// Format the article(s) as a single HTML document with absolute URL's
 			$book = $title->getText();
 			// start a proper HTML document
-			$html = self::getHTMLHeader($title);
+			$html = self::getHTMLHeader($title,$charset);
 			$wgArticlePath = $wgServer.$wgArticlePath;
 			$wgPdfBookTab  = true;
 			$wgScriptPath  = $wgServer.$wgScriptPath;
@@ -149,6 +149,7 @@ class PdfBookHooks {
 				}
 				if ($use_wkhtmltopdf) {
 					$cmd=$wkhtmltopdf;
+					$cmd.=" --encoding $charset";
 					if ($titlepage != "") {
 						$cmd.= " $titlefile";
 					}
@@ -197,7 +198,7 @@ class PdfBookHooks {
 					// uncomment the following line if you'd like to keep the temporary files for debug inspection even if debug is off
 					$removeFiles=false;
 					// we should handle an error here
-					echo self::getHTMLHeader("Error");
+					echo self::getHTMLHeader("Error",$charset);
 					echo "<div style='color:red'>PDF Creation Error</div>\n";
 					echo "$cmd failed with error code $error_code\n";
 					echo implode("<br>\n",$htmldocoutput);
@@ -228,11 +229,11 @@ class PdfBookHooks {
 	/**
 	 * return a proper html header with Style sheet information
 	 */
-	private static function getHtmlHeader($title) {
+	private static function getHtmlHeader($title,$encoding) {
 		$html="<!DOCTYPE html>\n".
           "<html lang='en' dir='ltr' class='client-nojs'>\n".
 					"<head>\n".
-					"<meta charset='UTF-8' />\n".
+					"<meta charset='".$encoding."' />\n".
 					"<title>'.$title.'</title>\n".
 					"<meta name='generator' content='PdfBook MediaWiki Extension' />\n".
 					"<head>\n".
