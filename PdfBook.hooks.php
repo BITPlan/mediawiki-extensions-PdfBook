@@ -38,7 +38,7 @@ class PdfBookHooks {
 			$font    = self::setProperty( 'Font',	     'Arial' );
 			$size    = self::setProperty( 'FontSize',    '8' );
 			$ls      = self::setProperty( 'LineSpacing', 1 );
-			$linkcol = self::setProperty( 'LinkColour',  '217A28' );
+			$linkcol = self::setProperty( 'LinkColour',  '0000EE' );
 			$levels  = self::setProperty( 'TocLevels',   '2' );
 			$exclude = self::setProperty( 'Exclude',     array() );
 			$width   = self::setProperty( 'Width',       '' );
