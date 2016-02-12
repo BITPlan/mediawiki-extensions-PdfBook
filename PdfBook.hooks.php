@@ -122,9 +122,11 @@ class PdfBookHooks {
 					mkdir( $wgUploadDirectory );
 				}
 				$pdfid=uniqid( 'pdf-book' );
-				$file      = "$wgUploadDirectory/" .$pdfid .".html";
-				$titlefile = "$wgUploadDirectory/" .$pdfid ."-title.html";
-				$pdffile   = "$wgUploadDirectory/" .$pdfid .".pdf";
+				$pdfdir=$wgUploadDirectory;
+				$pdfdir="/tmp";
+				$file      = "$pdfdir/" .$pdfid .".html";
+				$titlefile = "$pdfdir/" .$pdfid ."-title.html";
+				$pdffile   = "$pdfdir/" .$pdfid .".pdf";
 				file_put_contents( $file, $html );
 				// check if a titlepage was specified
  			  	if ($titlepage != "") {
@@ -137,27 +139,41 @@ class PdfBookHooks {
 
 				$toc    = $format == 'single' ? "" : " --toclevels $levels";
 
-				$cmd  = "--left $left --right $right --top $top --bottom $bottom";
-				$cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
-				$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
-				$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
-                                
-				$cmd .= " --logoimage $logopath";
-				if ($titlepage != "") {
-					$cmd.= " --titlefile $titlefile";
-				}
 				// check some default locations for htmldoc
 				// add yours if this doesn't work
 				$htmldoc="/usr/bin/htmldoc";
-				if (!file_exists($htmldoc)) {
-					$htmldoc="/opt/local/bin/htmldoc";
+				$wkhtmltopdf="/usr/local/bin/wkhtmltopdf";
+				$use_wkhtmltopdf=false;
+				if (file_exists($wkhtmltopdf)) {
+					$use_wkhtmltopdf=true;
 				}
-				if (!file_exists($htmldoc))  {
+				if ($use_wkhtmltopdf) {
+					$cmd=$wkhtmltopdf;
+					if ($titlepage != "") {
+						$cmd.= " $titlefile";
+					}
+					$cmd.=" ".$file;
+					$cmd.=" ".$pdffile;
+				} else {
+					if (!file_exists($htmldoc)) {
+						$htmldoc="/opt/local/bin/htmldoc";
+					}
+					if (!file_exists($htmldoc))  {
 					die("PdfBook MediaWiki extension: htmldoc application path not configured. You might want to modify PdfBook.hooks.php.");
+					}
+					// $cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file";
+					$cmd  = "--left $left --right $right --top $top --bottom $bottom";
+					$cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
+					$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
+					$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
+                                
+					$cmd .= " --logoimage $logopath";
+					if ($titlepage != "") {
+						$cmd.= " --titlefile $titlefile";
+					}
+					$cmd  = "$htmldoc -t pdf --charset $charset $cmd $file > 	$pdffile";
+					putenv( "HTMLDOC_NOCGI=1" );
 				}
-				// $cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file";
-				$cmd  = "$htmldoc -t pdf --charset $charset $cmd $file > $pdffile";
-				putenv( "HTMLDOC_NOCGI=1" );
 				// uncomment if you'd like to force debugging
 				$debug=true;
 				$removeFiles=true;
@@ -189,6 +205,8 @@ class PdfBookHooks {
 					readfile($pdffile);
 					echo self::getHTMLFooter();			
 				} else {
+					// scpcmd="scp /tmp/$pdfid* mars:/tmp";
+					// shell_exec($scpcmd);
 					// Send the resulting pdf file to the client
 					header( "Content-Type: application/pdf" );
 					header( "Content-Disposition: attachment; filename=\"$book.pdf\"" );
@@ -196,9 +214,9 @@ class PdfBookHooks {
 				}
 				if ($removeFiles) {
 				  @unlink( $file );
-		      @unlink( $titlefile );	
-		      @unlink( $pdffile);
-		    }	
+				  @unlink( $titlefile );	
+				  @unlink( $pdffile);
+				}	
 
 			}
 			return false;
