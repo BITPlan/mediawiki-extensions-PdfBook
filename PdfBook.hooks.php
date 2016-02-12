@@ -165,13 +165,18 @@ class PdfBookHooks {
 				*/
 				if ($use_wkhtmltopdf) {
 					$cmd=$wkhtmltopdf;
+					$cmd.=" --encoding $charset";
+					$cmd.=" --minimum-font-size 16";
+					$cmd.=" --margin-bottom 20mm";
+					if ($titlepage != "") {
+						$cmd.= " cover $titlefile";
+					}
+					$cmd.=" toc ";
+					$cmd.=" page ".$file;
 					$cmd.=" --footer-right '[page]/[topage]'";
 					$cmd.=" --footer-left '[date]'";
-					$cmd.=" --encoding $charset";
-					if ($titlepage != "") {
-						$cmd.= " $titlefile";
-					}
-					$cmd.=" ".$file;
+					$cmd.=" --footer-spacing 10";
+
 					$cmd.=" ".$pdffile;
 				} else {
 					if (!file_exists($htmldoc)) {
