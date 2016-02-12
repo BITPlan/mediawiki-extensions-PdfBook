@@ -147,8 +147,26 @@ class PdfBookHooks {
 				if (file_exists($wkhtmltopdf)) {
 					$use_wkhtmltopdf=true;
 				}
+				/** if we use wkhtmltopdf the options from
+				// http://wkhtmltopdf.org/usage/wkhtmltopdf.txt are relevant
+				   * [page]       Replaced by the number of the pages currently being printed
+				   * [frompage]   Replaced by the number of the first page to be printed
+				   * [topage]     Replaced by the number of the last page to be printed
+				   * [webpage]    Replaced by the URL of the page being printed
+				   * [section]    Replaced by the name of the current section
+				   * [subsection] Replaced by the name of the current subsection
+				   * [date]       Replaced by the current date in system local format
+				   * [isodate]    Replaced by the current date in ISO 8601 extended format
+				   * [time]       Replaced by the current time in system local format
+				   * [title]      Replaced by the title of the of the current page object
+				   * [doctitle]   Replaced by the title of the output document
+				   * [sitepage]   Replaced by the number of the page in the current site being converted
+				   * [sitepages]  Replaced by the number of pages in the current site being converted
+				*/
 				if ($use_wkhtmltopdf) {
 					$cmd=$wkhtmltopdf;
+					$cmd.=" --footer-right '[page]/[topage]'";
+					$cmd.=" --footer-left '[date]'";
 					$cmd.=" --encoding $charset";
 					if ($titlepage != "") {
 						$cmd.= " $titlefile";
