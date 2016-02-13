@@ -137,8 +137,6 @@ class PdfBookHooks {
 				  file_put_contents( $titlefile, $titlehtml );
 				}
 
-				$toc    = $format == 'single' ? "" : " --toclevels $levels";
-
 				// check some default locations for htmldoc
 				// add yours if this doesn't work
 				$htmldoc="/usr/bin/htmldoc";
@@ -166,12 +164,14 @@ class PdfBookHooks {
 				if ($use_wkhtmltopdf) {
 					$cmd=$wkhtmltopdf;
 					$cmd.=" --encoding $charset";
-					$cmd.=" --minimum-font-size 16";
+					$cmd.=" --minimum-font-size 24";
 					$cmd.=" --margin-bottom 20mm";
 					if ($titlepage != "") {
 						$cmd.= " cover $titlefile";
 					}
-					$cmd.=" toc ";
+					// Table of content seting
+					$toc    = $format == 'single' ? "" : " toc";
+					$cmd.=" $toc ";
 					$cmd.=" page ".$file;
 					$cmd.=" --footer-right '[page]/[topage]'";
 					$cmd.=" --footer-left '[date]'";
@@ -189,6 +189,9 @@ class PdfBookHooks {
 					$cmd  = "--left $left --right $right --top $top --bottom $bottom";
 					$cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
 					$cmd .= " --bodyfont $font --fontsize $size --fontspacing $ls --linkstyle plain --linkcolor $linkcol";
+					// Table of content seting
+					$toc    = $format == 'single' ? "" : " --toclevels $levels";
+
 					$cmd .= "$toc --no-title --format pdf14 --numbered $layout $width";
                                 
 					$cmd .= " --logoimage $logopath";
