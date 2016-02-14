@@ -136,8 +136,8 @@ class PdfBookHooks {
 				$pdffile   = "$pdfdir/" .$pdfid .".pdf";
 				file_put_contents( $file, $html );
 				// get the HTML file for titlepage and headerpage (if any)
-				self::getPageFile($titlepage,$titlefile);
-				self::getPageFile($headepage,$headerfile);
+				self::getPageFile($titlepage ,$titlefile,$format,$opt,$charset);
+				self::getPageFile($headerpage,$headerfile,$format,$opt,$charset);
 
 				// check some default locations for htmldoc
 				// add yours if this doesn't work
@@ -164,20 +164,25 @@ class PdfBookHooks {
 				   * [sitepages]  Replaced by the number of pages in the current site being converted
 				*/
 				if ($use_wkhtmltopdf) {
-					$cmd=$wkhtmltopdf;
-					$cmd.=" --encoding $charset";
-					$cmd.=" --minimum-font-size 24";
-					$cmd.=" --margin-bottom 20mm";
+					$linesep=" \\\n"; // line separator
+					$cmd=$wkhtmltopdf.$linesep;
+					$cmd.=" --encoding $charset ".$linesep;
+					$cmd.=" --minimum-font-size 18".$linesep;
+					$cmd.=" --margin-bottom 20mm".$linesep;
 					if ($titlepage != "") {
-						$cmd.= " cover $titlefile";
+						$cmd.= " cover $titlefile".$linesep;
 					}
 					// Table of content seting
 					$toc    = $format == 'single' ? "" : " toc";
-					$cmd.=" $toc ";
-					$cmd.=" page ".$file;
-					$cmd.=" --footer-right '[page]/[topage]'";
-					$cmd.=" --footer-left '[date]'";
-					$cmd.=" --footer-spacing 10";
+					$cmd.=" $toc ".$linesep;
+					$cmd.=" page ".$file.$linesep;
+					if ($headerpage != "") {
+						$cmd.= " --header-spacing 10".$linesep;
+						$cmd.= " --header-html $headerfile".$linesep;
+					}
+					$cmd.=" --footer-right '[page]/[topage]'".$linesep;
+					$cmd.=" --footer-left '[date]'".$linesep;
+					$cmd.=" --footer-spacing 10".$linesep;
 
 					$cmd.=" ".$pdffile;
 				} else {
@@ -256,6 +261,17 @@ class PdfBookHooks {
 	}
 	
 	/**
+	 * wrap the given html into a html header and body including doctype
+	 *
+	 */
+	private static function wrapInBody($html,$title,$encoding) {
+		$result=self::getHtmlHeader($title,$encoding);
+		$result.=$html;
+		$result.=self::getHtmlFooter();
+		return $result;
+	}
+	
+	/**
 	 * return a proper html header with Style sheet information
 	 */
 	private static function getHtmlHeader($title,$encoding) {
@@ -284,13 +300,14 @@ class PdfBookHooks {
 	 * get the page html for the given page title and put it in the given 
 	 * file
 	 */
-	private static function getPageFile($page,$pagefile) {
+	private static function getPageFile($pageTitle,$pagefile,$format,$opt,$encoding) {
 	   // check if a titlepage was specified
- 		 if ($page != "") {
+ 		 if ($pageTitle != "") {
 			 	$l_ttext="";
 		  	$l_notitle=true;
-				$l_title=Title::newFromText( $page );
+				$l_title=Title::newFromText( $pageTitle );
 				$pagehtml=self::getHtml($l_title,$l_ttext,$format,$opt,$l_notitle);
+				$pagehtml=self::wrapInBody($pagehtml,$l_title,$encoding);
 				file_put_contents( $pagefile, $pagehtml );
 		}
 	}
