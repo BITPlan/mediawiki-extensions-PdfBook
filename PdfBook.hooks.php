@@ -82,11 +82,16 @@ class PdfBookHooks {
 					// get the current page
 					$text = $article->fetchContent();
 					$text = $wgParser->preprocess( $text, $title, $opt );
-					// regulare expression to look for links in page
-					$linkRegexp="/^\\*\\s*\\[{2}\\s*([^\\|\\]]+)\\s*.*?\\]{2}/m";
-					// for each linkg found get the page title it points to
+					// uncomment to debug the list page
+					file_put_contents( "/tmp/listpage.wiki", $text );
+					// look for local page links in the [[ | form]]
+					// these can be preceded with either * or <li>
+					// this is the old regexpe that could only do *
+					// $linkRegexp="/^\\*\\s*\\[{2}\\s*([^\\|\\]]+)\\s*.*?\\]{2}/m";
+					$linkRegexp="/^((\\*)|(\\s*\\<li[^\\>]*\\>))\\s*\\[{2}\\s*[:]?([^\\|\\]]+)\\s*.*?\\]{2}/m";
+					// for each link found get the page title it points to
 					if ( preg_match_all( $linkRegexp, $text, $links ) ) {
-						foreach ( $links[1] as $link ) {
+						foreach ( $links[4] as $link ) {
 							$articles[] = Title::newFromText( $link );
 						}
 					}
