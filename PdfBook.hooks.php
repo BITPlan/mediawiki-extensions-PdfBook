@@ -27,7 +27,6 @@ class PdfBookHooks {
 			// Initialise PDF variables
 			$format  = $wgRequest->getText( 'format' );
 			$notitle = $wgRequest->getText( 'notitle' );
-			$titlepage=$wgRequest->getText( 'titlepage' );
 			
 			$layout  = $format == 'single' ? '--webpage' : '--firstpage toc';
 			$charset = self::setProperty( 'Charset',     'iso-8859-1' );
@@ -48,9 +47,12 @@ class PdfBookHooks {
 			$footer    = self::setProperty( 'Footer',       '.1.' );
 			$debug     = self::setProperty( 'Debug',       false );
 			$timeout   = self::setProperty( 'TimeOut',     30 );
+			$titlepage = self::setProperty( 'TitlePage', '' );
+						
 			$logopath  = self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 			// features for wkHhtmlToPdf
 			$headerpage= self::setProperty( 'HeaderPage',   '' );
+			
 
 			if( !is_array( $exclude ) ) {
 				$exclude = split( '\\s*,\\s*', $exclude );
@@ -238,6 +240,8 @@ class PdfBookHooks {
 				while(self::isRunning($pid)) {
 					usleep(50000); // sleep 50 millisecs
    				if(time() > $startTime + $timeout) {
+   					// terminate the process
+   					posix_kill($pid,9);
    				  $error_code=1;
      				break;
      			}
@@ -256,7 +260,9 @@ class PdfBookHooks {
 					echo "$cmd failed with error code $error_code\n";
 					// echo implode("<br>\n",$htmldocoutput);
 					echo "<h3>".$pdfgen." result</h3>\n";
-					readfile($pdffile);
+					if (!file_exists($pdffile)) {
+						echo "$pdffile does not exist";
+					}
 					echo self::getHTMLFooter();			
 				} else {
 					// scpcmd="scp /tmp/$pdfid* mars:/tmp";
