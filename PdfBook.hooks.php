@@ -146,6 +146,7 @@ class PdfBookHooks {
 				$use_wkhtmltopdf=false;
 				if (file_exists($wkhtmltopdf)) {
 					$use_wkhtmltopdf=true;
+					$pdfgen=$wkhtmltopdf;
 				}
 				/** if we use wkhtmltopdf the options from
 				// http://wkhtmltopdf.org/usage/wkhtmltopdf.txt are relevant
@@ -190,8 +191,9 @@ class PdfBookHooks {
 						$htmldoc="/opt/local/bin/htmldoc";
 					}
 					if (!file_exists($htmldoc))  {
-					die("PdfBook MediaWiki extension: htmldoc application path not configured. You might want to modify PdfBook.hooks.php.");
+						die("PdfBook MediaWiki extension: htmldoc application path not configured. You might want to modify PdfBook.hooks.php.");
 					}
+					$pdfgen=$htmldoc;
 					// $cmd  = "/opt/local/bin/htmldoc -t pdf --charset $charset $cmd $file";
 					$cmd  = "--left $left --right $right --top $top --bottom $bottom";
 					$cmd .= " --header $header --footer $footer --headfootsize 8 --quiet --jpeg --color";
@@ -218,7 +220,7 @@ class PdfBookHooks {
 				}
 				# get the result of the command
 				$error_code=0;
-				$htmldocoutput=array();
+				// $htmldocoutput=array();
 				// this is a debugging way to do things
 				// exec($cmd,$htmldocoutput,$error_code );
 				// file_put_contents($pdffile,implode($htmldocoutput));
@@ -234,8 +236,8 @@ class PdfBookHooks {
 					echo self::getHTMLHeader("Error",$charset);
 					echo "<div style='color:red'>PDF Creation Error</div>\n";
 					echo "$cmd failed with error code $error_code\n";
-					echo implode("<br>\n",$htmldocoutput);
-					echo "<h3>htmldoc result</h3>\n";
+					// echo implode("<br>\n",$htmldocoutput);
+					echo "<h3>".$pdfgen." result</h3>\n";
 					readfile($pdffile);
 					echo self::getHTMLFooter();			
 				} else {
@@ -290,8 +292,7 @@ class PdfBookHooks {
 	 * return a proper html footer with Style sheet information
 	 */
 	private static function getHtmlFooter() {
-		$html="<!DOCTYPE html>\n".
-          "</body>\n".
+		$html="</body>\n".
 					"</html>\n";
     return $html;
 	}
