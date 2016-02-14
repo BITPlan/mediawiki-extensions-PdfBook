@@ -47,6 +47,7 @@ class PdfBookHooks {
 			$header    = self::setProperty( 'Header',       '...' );
 			$footer    = self::setProperty( 'Footer',       '.1.' );
 			$debug     = self::setProperty( 'Debug',       false );
+			$timeout   = self::setProperty( 'TimeOut',     30 );
 			$logopath  = self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 			// features for wkHhtmlToPdf
 			$headerpage= self::setProperty( 'HeaderPage',   '' );
@@ -132,6 +133,7 @@ class PdfBookHooks {
 				$pdfid=uniqid( 'pdf-book' );
 				$pdfdir=$wgUploadDirectory;
 				$pdfdir="/tmp";
+				$outputfile= "$pdfdir/" .$pdfid .".out";
 				$file      = "$pdfdir/" .$pdfid .".html";
 				$titlefile = "$pdfdir/" .$pdfid ."-title.html";
 				$headerfile= "$pdfdir/" .$pdfid ."-header.html";
@@ -226,7 +228,21 @@ class PdfBookHooks {
 				// this is a debugging way to do things
 				// exec($cmd,$htmldocoutput,$error_code );
 				// file_put_contents($pdffile,implode($htmldocoutput));
-				$error_code=shell_exec($cmd);
+				// run the command in background
+				// see http://stackoverflow.com/questions/45953/php-execute-a-background-process#45966
+				$pidArr=array();
+				$error_code=0;
+				exec(sprintf("%s > %s 2>&1 & echo $!", $cmd, $outputfile),$pidArr);
+				$pid= $pidArr[0] ;
+				$startTime = time();
+				while(self::isRunning($pid)) {
+					usleep(50000); // sleep 50 millisecs
+   				if(time() > $startTime + $timeout) {
+   				  $error_code=1;
+     				break;
+     			}
+   			};
+				// $error_code=shell_exec($cmd);
 				// display the result
 				// in any case we do not show a wiki page but our own result
 				$wgOut->disable();
@@ -251,6 +267,7 @@ class PdfBookHooks {
 					readfile($pdffile);
 				}
 				if ($removeFiles) {
+				  @unlink( $outfile) ;
 				  @unlink( $file );
 				  @unlink( $titlefile );	
 				  @unlink( $headerfile);
@@ -262,6 +279,20 @@ class PdfBookHooks {
 		}
 
 		return true;
+	}
+	
+	/**
+	 * check that the process is still running
+	 */
+	private static function isRunning($pid){
+    try{
+        $result = shell_exec(sprintf("ps %d", $pid));
+        if( count(preg_split("/\n/", $result)) > 2){
+            return true;
+        }
+    }catch(Exception $e){}
+
+    return false;
 	}
 	
 	/**
