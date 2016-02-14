@@ -112,6 +112,8 @@ class PdfBookHooks {
 				$ttext = $title->getPrefixedText();
 				if( !in_array( $ttext, $exclude ) ) {
 					$html.=self::getHtml($title,$ttext,$format,$opt,$notitle);
+					// force page break
+					$html.="<div style='page-break-before:always'></div>";
 				}
 			}
 			// end the HTML document
@@ -284,7 +286,7 @@ class PdfBookHooks {
 					"<title>'.$title.'</title>\n".
 					"<meta name='generator' content='PdfBook MediaWiki Extension' />\n".
 					"<head>\n".
-					"<body>\n";
+					"<body style='margin:0; padding:0;'>\n";
     return $html;
 	}
 	
