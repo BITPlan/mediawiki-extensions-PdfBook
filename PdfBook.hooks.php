@@ -44,11 +44,12 @@ class PdfBookHooks {
 			$width   = self::setProperty( 'Width',       '' );
 			$width   = $width ? "--browserwidth $width" : '';
 			// new features 2016-01
-			$header  = self::setProperty( 'Header',       '...' );
-			$footer  = self::setProperty( 'Footer',       '.1.' );
-			$debug   = self::setProperty( 'Debug',       false );
-			
-			$logopath= self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
+			$header    = self::setProperty( 'Header',       '...' );
+			$footer    = self::setProperty( 'Footer',       '.1.' );
+			$debug     = self::setProperty( 'Debug',       false );
+			$logopath  = self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
+			// features for wkHhtmlToPdf
+			$headerpage= self::setProperty( 'HeaderPage',   '' );
 
 			if( !is_array( $exclude ) ) {
 				$exclude = split( '\\s*,\\s*', $exclude );
@@ -131,16 +132,12 @@ class PdfBookHooks {
 				$pdfdir="/tmp";
 				$file      = "$pdfdir/" .$pdfid .".html";
 				$titlefile = "$pdfdir/" .$pdfid ."-title.html";
+				$headerfile= "$pdfdir/" .$pdfid ."-header.html";
 				$pdffile   = "$pdfdir/" .$pdfid .".pdf";
 				file_put_contents( $file, $html );
-				// check if a titlepage was specified
- 			  	if ($titlepage != "") {
-				  $l_ttext="";
-				  $l_notitle=true;
-				  $l_title=Title::newFromText( $titlepage );
-				  $titlehtml=self::getHtml($l_title,$l_ttext,$format,$opt,$l_notitle);
-				  file_put_contents( $titlefile, $titlehtml );
-				}
+				// get the HTML file for titlepage and headerpage (if any)
+				self::getPageFile($titlepage,$titlefile);
+				self::getPageFile($headepage,$headerfile);
 
 				// check some default locations for htmldoc
 				// add yours if this doesn't work
@@ -247,6 +244,7 @@ class PdfBookHooks {
 				if ($removeFiles) {
 				  @unlink( $file );
 				  @unlink( $titlefile );	
+				  @unlink( $headerfile);
 				  @unlink( $pdffile);
 				}	
 
@@ -280,6 +278,21 @@ class PdfBookHooks {
           "</body>\n".
 					"</html>\n";
     return $html;
+	}
+	
+	/**
+	 * get the page html for the given page title and put it in the given 
+	 * file
+	 */
+	private static function getPageFile($page,$pagefile) {
+	   // check if a titlepage was specified
+ 		 if ($page != "") {
+			 	$l_ttext="";
+		  	$l_notitle=true;
+				$l_title=Title::newFromText( $page );
+				$pagehtml=self::getHtml($l_title,$l_ttext,$format,$opt,$l_notitle);
+				file_put_contents( $pagefile, $pagehtml );
+		}
 	}
 	
 	/**
