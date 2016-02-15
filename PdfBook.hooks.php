@@ -52,6 +52,8 @@ class PdfBookHooks {
 			$logopath  = self::setProperty( 'Logopath',  $_SERVER['DOCUMENT_ROOT'].$wgLogo);
 			// features for wkHhtmlToPdf
 			$headerpage= self::setProperty( 'HeaderPage',   '' );
+			$landscape = self::setProperty( 'Landscape',   false );
+			$minimumfontsize=self::setProperty( 'MinimumFontSize',   10 );
 			
 
 			if( !is_array( $exclude ) ) {
@@ -173,8 +175,11 @@ class PdfBookHooks {
 				if ($use_wkhtmltopdf) {
 					$linesep=" \\\n"; // line separator
 					$cmd=$wkhtmltopdf.$linesep;
+					if ($landscape==true) {
+						$cmd.=" -O landscape".$linesep;
+					}
 					$cmd.=" --encoding $charset ".$linesep;
-					$cmd.=" --minimum-font-size 18".$linesep;
+					$cmd.=" --minimum-font-size ".$minimumfontsize.$linesep;
 					$cmd.=" --margin-bottom 20mm".$linesep;
 					if ($titlepage != "") {
 						$cmd.= " cover $titlefile".$linesep;
@@ -320,10 +325,10 @@ class PdfBookHooks {
           "<html lang='en' dir='ltr' class='client-nojs'>\n".
 					"<head>\n".
 					"<meta charset='".$encoding."' />\n".
-					"<title>'.$title.'</title>\n".
+					"<title>".$title."</title>\n".
 					"<meta name='generator' content='PdfBook MediaWiki Extension' />\n".
 					"<head>\n".
-					"<body style='margin:0; padding:0;'>\n";
+					"<body style='font-family: Arial; font-size:12px;margin:0; padding:0;'>\n";
     return $html;
 	}
 	
